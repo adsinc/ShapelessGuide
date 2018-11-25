@@ -1,7 +1,7 @@
 package ch5
 
-import ch2.Ch2.IceCream
-import shapeless.{HList, HNil, LabelledGeneric, Lazy, Witness, ::}
+import ch2.Ch2._
+import shapeless.{:+:, ::, CNil, Coproduct, HList, HNil, Inl, Inr, LabelledGeneric, Lazy, Witness}
 import shapeless.labelled.FieldType
 import shapeless.syntax.singleton._
 import ch5.Ch5._
@@ -58,6 +58,9 @@ object Ch5 {
     def encode(value: A): JsonObject
   }
 
+  def createObjectEncoder[A](fn: A => JsonObject): JsonObjectEncoder[A] =
+    value => fn(value)
+
   implicit val hnilEncoder: JsonObjectEncoder[HNil] =
     _ => JsonObject(Nil)
 
@@ -81,6 +84,24 @@ object Ch5 {
     hEncoder: Lazy[JsonObjectEncoder[H]]
   ): JsonEncoder[A] =
     value => hEncoder.value.encode(generic.to(value))
+
+  implicit val cnilObjectEncoder: JsonObjectEncoder[CNil] =
+    _ => throw new Exception("Inconceivable")
+
+  implicit def coproductObjectEncoder[K <: Symbol, H, T <: Coproduct](
+    implicit
+    witness: Witness.Aux[K],
+    hEncoder: Lazy[JsonEncoder[H]],
+    tEncoder: JsonObjectEncoder[T]
+  ): JsonObjectEncoder[FieldType[K, H] :+: T] = {
+    val typeName = witness.value.name
+    createObjectEncoder {
+      case Inl(h) =>
+        JsonObject(List(typeName -> hEncoder.value.encode(h)))
+      case Inr(t) =>
+        tEncoder.encode(t)
+    }
+  }
 }
 
 object Main extends App {
@@ -88,4 +109,10 @@ object Main extends App {
   println(getFieldValue(numCherries))
 
   println(JsonEncoder[IceCream].encode(iceCream))
+
+  println(LabelledGeneric[Shape].to(Circle(1)))
+
+  val shape: Shape = Circle(1.0)
+
+  println(JsonEncoder[Shape].encode(shape))
 }
