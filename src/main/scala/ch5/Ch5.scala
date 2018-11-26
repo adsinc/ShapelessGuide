@@ -78,7 +78,7 @@ object Ch5 {
     }
   }
 
-  implicit def genericObjectEncoder[A, H <: HList](
+  implicit def genericObjectEncoder[A, H](
     implicit
     generic: LabelledGeneric.Aux[A, H],
     hEncoder: Lazy[JsonObjectEncoder[H]]
@@ -115,4 +115,5 @@ object Main extends App {
   val shape: Shape = Circle(1.0)
 
   println(JsonEncoder[Shape].encode(shape))
+
 }
