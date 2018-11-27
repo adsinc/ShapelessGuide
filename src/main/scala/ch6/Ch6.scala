@@ -1,11 +1,11 @@
 package ch6
 
-import ch6.Ch6.{IceCreamV1, IceCreamV2a, IceCreamV2b, IceCreamV2c}
 import shapeless._
 import shapeless.ops.hlist
 import cats._
 import cats.implicits._
-import shapeless.labelled.{FieldType, field}
+import shapeless.labelled._
+import Ch6._
 
 object Ch6 {
 
@@ -41,21 +41,22 @@ object Ch6 {
 
   def createMonoid[A](zero: A)(add: (A, A) => A): Monoid[A] =
     new Monoid[A] {
-      override def empty: A = zero
-      override def combine(x: A, y: A): A = add(x, y)
+      def empty: A = zero
+      def combine(x: A, y: A): A = add(x, y)
     }
 
   implicit val hnilMonoid: Monoid[HNil] =
     createMonoid[HNil](HNil)((_, _) => HNil)
 
-  implicit def emptyHlist[K <: Symbol, H, T <: HList] (
+  implicit def hlistMonoid[K <: Symbol, H, T <: HList] (
     implicit
     hMonoid: Lazy[Monoid[H]],
     tMonoid: Monoid[T]
   ): Monoid[FieldType[K, H] :: T] =
     createMonoid(field[K](hMonoid.value.empty) :: tMonoid.empty) {
       (x, y) =>
-        field[K](hMonoid.value.combine(x.head, y.head)) :: tMonoid.combine(x.tail, y.tail)
+        field[K](hMonoid.value.combine(x.head, y.head)) ::
+          tMonoid.combine(x.tail, y.tail)
     }
 }
 
